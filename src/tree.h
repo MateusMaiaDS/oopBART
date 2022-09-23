@@ -205,15 +205,41 @@ public:
 
   // Get the number of NOG (branches parents of terminal nodes)
   int n_nog(){
+    // Selecting possible parents of terminal nodes to prune
+    vector<node> nog_list;
     int nog_counter = 0;
-    for(int i=0;i<list_node.size();i++){
+    // Getting the parent of terminal node only
+    for(int i = 0; i<list_node.size();i++){
       if(list_node[i].isTerminal()==0){
-        if(list_node[list_node[i].left].isTerminal()==1 && list_node[list_node[i].right].isTerminal()==1){
+        if(list_node[i+1].isTerminal()== 1 && list_node[i+2].isTerminal()==1){
           nog_counter++;
         }
       }
     }
     return nog_counter;
+  }
+
+  // Getting the tree loglikelihood
+  double tree_loglike(Rcpp::NumericVector res_val, double tau, double tau_mu){
+
+    double log_likesum = 0;
+
+    // Getting values
+    for(int i=0;list_node.size();i++){
+      log_likesum += list_node[i].loglikelihood(res_val,tau,tau_mu);
+    }
+
+    return log_likesum;
+  }
+
+  // Update tree all the mu from all the trees
+  void update_mu_tree(Rcpp::NumericVector res_val, double tau, double tau_mu){
+
+    // Iterating over all nodes
+    for(int i = 0; list_node.size();i++){
+      list_node[i].update_mu(res_val,tau,tau_mu);
+    }
+
   }
 
   // Growing a tree
@@ -584,41 +610,35 @@ public:
   } // DO NOT TO CALCULATE ALL OF THEM, JUST NEED TO COMPARE WITH THE PREVIOUS TREE
 
 
+  void getPrediction(Rcpp::NumericVector &train_pred_vec,
+                     Rcpp::NumericVector &test_pred_vec){
+
+      // Iterating over all trees nodes
+      for(int i=0; i<list_node.size();i++){
+
+        // Checking only over terminal nodes
+        if(list_node[i].isTerminal()){
+
+          // Iterating over the train observations
+          for(int j=0;j<list_node[i].obs_train.size();j++){
+            train_pred_vec(j) = list_node[i].mu;
+          }
+
+          // Iterating over the test observations
+          for(int k = 0; k<list_node[k].obs_test.size();k++){
+            test_pred_vec(k) = list_node[i].mu;
+          }
+
+        }
+
+      } // Finishing the interests over the terminal nodes
+
+      return;
+  }
+
 };
 
 
-
-class test{
-  public:
-
-  int x;
-  Rcpp::NumericVector x_vec;
-
-  test(int number){
-    x = number;
-    x_vec = seq_along_cpp(number);
-  }
-
-  Rcpp::NumericVector double_x(){
-
-    Rcpp::NumericVector double_x_vector;
-    for(int i = 0; i< x_vec.size(); i++){
-      double_x_vector.push_back(2*x_vec(i));
-    }
-    return double_x_vector;
-  }
-
-  double sum_double_x(){
-    double sum = 0;
-    Rcpp::NumericVector x_vector_dummy = double_x();
-      for(int i = 0;i<x_vec.size(); i++){
-        sum += x_vector_dummy(i);
-      }
-    return sum;
-  }
-};
-
-RCPP_EXPOSED_CLASS(test);
 RCPP_EXPOSED_CLASS(node);
 RCPP_EXPOSED_CLASS(Tree);
 
