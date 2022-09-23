@@ -1,6 +1,7 @@
 # Creating a simple example to test the loglikelihood function
+library(purrr)
 n <- 20
-x <- matrix(seq(-pi,pi,length.out = n))
+x <- matrix(seq(-1,10,length.out = n))
 y <- 10*x
 
 test_likelihood(x = x,y = y,tau = 10,tau_mu = 10)
@@ -45,7 +46,7 @@ for(j in 1:ncol(x)){
 }
 
 
-indicator_vec <- test_grow(x = x,x_test = x,y = c(y),xcut = xcut,tau = 10,tau_mu = 10)
+indicator_vec <- test_change(x = x,x_test = x,y = c(y),xcut = xcut,tau = 10,tau_mu = 10)
 
 df <- data.frame(x = x, y = y , col = as.character(indicator_vec))
 df$col %>% unique() %>% length()

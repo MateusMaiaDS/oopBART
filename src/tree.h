@@ -353,8 +353,7 @@ public:
     // Updating the current node
     list_node[g_original_index].left = max_index+1;
     list_node[g_original_index].right = max_index+2;
-    list_node[g_original_index].var = split_var;
-    list_node[g_original_index].var_split = split_var_rule;
+
 
     // Updating the current_tree
     list_node.insert(list_node.begin()+g_original_index+1,
@@ -364,8 +363,8 @@ public:
                              -1,
                              -1,
                              g_node->depth+1,
-                             -1,
-                             -1.1,
+                             split_var,
+                             split_var_rule,
                              0));
 
     list_node.insert(list_node.begin()+g_original_index+2,
@@ -375,8 +374,8 @@ public:
                              -1,
                              -1,
                              g_node->depth+1,
-                             -1,
-                             -1.1,
+                             split_var,
+                             split_var_rule,
                              0));
 
     // Finishing the process;
@@ -389,17 +388,202 @@ public:
 
     // Selecting possible parents of terminal nodes to prune
     vector<node> nog_list;
-    int nog_original_index;
+    Rcpp::NumericVector nog_original_index_vec;
+
     // Getting the parent of terminal node only
     for(int i = 0; i<list_node.size();i++){
-        if(list_node[i].terminal==0){
-          if(list_node[i+1].terminal == 1 && list_node[i+2].terminal==1){
-            nog_list.push_back();
+        if(list_node[i].isTerminal()==0){
+          if(list_node[i+1].isTerminal()== 1 && list_node[i+2].isTerminal()==1){
+            nog_list.push_back(list_node[i]);
+            nog_original_index_vec.push_back(i);
           }
         }
     }
 
+    // Sampling a random node to be pruned
+    int p_node_index = sample_int(nog_list.size());
+    int nog_original_index = nog_original_index_vec(p_node_index);
+    node p_node = nog_list[p_node_index];
+
+    // Changing the current node that will be pruned saving their left and right indexes
+    int left_pruned_index = p_node.left;
+    int right_pruned_index = p_node.right;
+
+    list_node[nog_original_index].left = -1;
+    list_node[nog_original_index].right = -1;
+
+    // Creating the list of nodes from the new tree
+    vector<node> new_nodes;
+
+    for(int i = 0; i<list_node.size();i++){
+
+      // Adding the new nodes
+      if(list_node[i].index!=left_pruned_index & list_node[i].index!=right_pruned_index){
+          new_nodes.push_back(list_node[i]);
+      }
+    }
+
+    // Replacing the new list of nodes;
+    list_node = new_nodes;
+
+  return;
+
   }
+
+  // Growing a tree
+  void change(Rcpp::NumericMatrix x_train,
+            Rcpp::NumericMatrix x_test,
+            int node_min_size,
+            Rcpp::NumericMatrix xcut){
+
+    // Selecting possible parents of terminal nodes to prune
+    vector<node> nog_list;
+    Rcpp::NumericVector nog_original_index_vec;
+
+    // Getting the parent of terminal node only
+    for(int i = 0; i<list_node.size();i++){
+      if(list_node[i].isTerminal()==0){
+        if(list_node[i+1].isTerminal()== 1 && list_node[i+2].isTerminal()==1){
+          nog_list.push_back(list_node[i]);
+          nog_original_index_vec.push_back(i);
+        }
+      }
+    }
+
+    // Sampling a random node to be pruned
+    node* c_node; // Node to be grow
+    int p_node_index = sample_int(nog_list.size());
+    int nog_original_index = nog_original_index_vec(p_node_index);
+    c_node = &nog_list[p_node_index];
+
+
+    cout << "NODE CHANGED IS " << c_node->index << endl;
+
+    // Defining the number of covariates
+    int p = x_train.ncol();
+    int cov_trial_counter = 0; // To count if all the covariate were tested
+    int valid_split_indicator = 0;
+    int split_var;
+    double min_x_current_node;
+    double max_x_current_node;
+
+
+    Rcpp::NumericVector x_cut_valid; // Defining the vector of valid "split rules" based on xcut and the terminal node
+    Rcpp::NumericVector x_cut_candidates;
+
+    // Getting the CHANGE split rule
+    while(valid_split_indicator == 0) {
+
+      // Getting the split var
+      split_var = sample_int(p);
+
+      // Selecting the column of the x_curr
+      Rcpp::NumericVector x_current_node ;
+
+      for(int i = 0; i<c_node->obs_train.size();i++) {
+        x_current_node.push_back(x_train(c_node->obs_train(i),split_var));
+      }
+
+      min_x_current_node = min(x_current_node);
+      max_x_current_node = max(x_current_node);
+
+      // Getting available xcut variables
+      x_cut_candidates = xcut(_,split_var);
+
+      // Create a vector of splits that will lead to nontrivial terminal nodes
+      for(int k = 0; k<x_cut_candidates.size();k++){
+        if(x_cut_candidates(k)>min_x_current_node && x_cut_candidates(k)<max_x_current_node){
+          x_cut_valid.push_back(x_cut_candidates(k));
+        }
+      }
+
+      // IN THIS CASE I GUESS WE WILL ALMOST NEVER GONNA GET HERE SINCE IT'S ALREADY A VALID SPLIT FROM
+      //A GROW MOVE
+      if(x_cut_valid.size()==0){
+
+        cov_trial_counter++;
+        // CHOOSE ANOTHER SPLITING RULE
+        if(cov_trial_counter == p){
+          return;
+        }
+      } else {
+
+        // Verifying that a valid split was selected
+        valid_split_indicator = 1;
+
+      }
+
+    // SELECTING A RANDOM SPLIT RULE AND
+    double split_var_rule = x_cut_valid(sample_int(x_cut_valid.size()));
+
+      // Creating the new terminal nodes based on the new xcut selected value
+      // Getting observations that are on the left and the ones that are in the right
+      Rcpp::NumericVector new_left_train_index;
+      Rcpp::NumericVector new_right_train_index;
+      Rcpp::NumericVector curr_obs_train; // Observations that belong to that terminal node
+
+      // Same from above but for test observations
+      // Getting observations that are on the left and the ones that are in the right
+      Rcpp::NumericVector new_left_test_index;
+      Rcpp::NumericVector new_right_test_index;
+      Rcpp::NumericVector curr_obs_test; // Observations that belong to that terminal node
+
+      /// Iterating over the train and test
+      for(int j=0; j<c_node->obs_train.size();j++){
+        if(x_train(c_node->obs_train(j),split_var)<=split_var_rule){
+          new_left_train_index.push_back(c_node->obs_train(j));
+        } else {
+          new_right_train_index.push_back(c_node->obs_train(j));
+        }
+      }
+
+      /// Iterating over the test and test
+      for(int i=0; i<c_node->obs_test.size();i++){
+        if(x_test(c_node->obs_test(i),split_var)<=split_var_rule){
+          new_left_test_index.push_back(c_node->obs_test(i));
+        } else {
+          new_right_test_index.push_back(c_node->obs_test(i));
+        }
+      }
+
+      // Modifying the left node
+      list_node[nog_original_index+1].obs_train = new_left_train_index;
+      list_node[nog_original_index+1].obs_test = new_left_test_index;
+      list_node[nog_original_index+1].var = split_var;
+      list_node[nog_original_index+1].var_split = split_var_rule;
+
+      // Modifying the right node
+      list_node[nog_original_index+2].obs_train = new_right_train_index;
+      list_node[nog_original_index+2].obs_test = new_right_test_index;
+      list_node[nog_original_index+2].var = split_var;
+      list_node[nog_original_index+2].var_split = split_var_rule;
+
+      return;
+
+    }
+
+  }
+
+  // Function to calculate the tree prior loglikelihood
+  double prior_loglilke(double alpha, double beta){
+
+    // Getting the val
+    double p_loglike = 0;
+    for(int i = 0;i<list_node.size();i++){
+
+      // For internal nodes
+      if(list_node[i].isTerminal()==0){
+        p_loglike+= -beta*log(alpha*(1+list_node[i].depth));
+      } else {
+        p_loglike+= log(1-alpha/pow((1+list_node[i].depth),beta));
+      }
+
+    }// Finish iterating over all trees
+
+    return p_loglike;
+  } // DO NOT TO CALCULATE ALL OF THEM, JUST NEED TO COMPARE WITH THE PREVIOUS TREE
+
+
 };
 
 
