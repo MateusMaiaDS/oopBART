@@ -107,7 +107,7 @@ public:
       sum_r+=residuals_values(obs_train(i));
     }
 
-    mu = R::rnorm(sum_r/(tau*n_train+tau_mu),1/sqrt(n_train*tau+tau_mu));
+    mu = R::rnorm((sum_r*tau)/(tau*n_train+tau_mu),1/sqrt(n_train*tau+tau_mu));
 
   }
 

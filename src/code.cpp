@@ -181,7 +181,7 @@ List bart(const Rcpp::NumericMatrix x_train,
     }
 
     // Updating tau
-    // tau = update_tau_old(y,partial_pred,a_tau,d_tau);
+    tau = update_tau_old(y,partial_pred,a_tau,d_tau);
 
     // Updating the posterior matrix
     if(i >= n_burn){
