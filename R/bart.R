@@ -64,10 +64,8 @@ r_bart <- function(x_train,
     # Calculating \tau_{\mu} based on the scale of y
     # Need to change this value in case of non-scaling
     tau_mu <- (4 * n_tree * (K_bart^2))/((b_max-a_min)^2)
-    # tau_mu <- 0
-
     nsigma <- naive_sigma(x = x_train,y = y_scale)
-    # print(nsigma)
+
     d_tau <- rate_tau(x = x_train,y = y,prob = 0.9,shape = a_tau)
 
 

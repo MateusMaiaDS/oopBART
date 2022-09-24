@@ -82,6 +82,7 @@ public:
   double loglikelihood(Rcpp::NumericVector residuals_values,
                        double tau,
                        double tau_mu){
+
     // Declaring quantities in the node
     int n_train = obs_train.size();
     double sum_r_sq = 0;
@@ -100,7 +101,7 @@ public:
                    double tau_mu){
     // Calculating the sum of residuals
     double sum_r = 0;
-    double n_train = residuals_values.size();
+    double n_train = obs_train.size();
 
     for(int i = 0; i<obs_train.size();i++){
       sum_r+=residuals_values(obs_train(i));
@@ -224,9 +225,11 @@ public:
 
     double log_likesum = 0;
 
+    // Getting terminal nodes
+    vector<node> t_nodes =  getTerminals();
     // Getting values
-    for(int i=0;list_node.size();i++){
-      log_likesum += list_node[i].loglikelihood(res_val,tau,tau_mu);
+    for(int i=0;i<t_nodes.size();i++){
+      log_likesum += t_nodes[i].loglikelihood(res_val,tau,tau_mu);
     }
 
     return log_likesum;
@@ -236,8 +239,10 @@ public:
   void update_mu_tree(Rcpp::NumericVector res_val, double tau, double tau_mu){
 
     // Iterating over all nodes
-    for(int i = 0; list_node.size();i++){
-      list_node[i].update_mu(res_val,tau,tau_mu);
+    for(int i = 0; i<list_node.size();i++){
+      if(list_node[i].isTerminal()==1){
+        list_node[i].update_mu(res_val,tau,tau_mu);
+      }
     }
 
   }
@@ -483,7 +488,7 @@ public:
     c_node = &nog_list[p_node_index];
 
 
-    cout << "NODE CHANGED IS " << c_node->index << endl;
+    // cout << "NODE CHANGED IS " << c_node->index << endl;
 
     // Defining the number of covariates
     int p = x_train.ncol();
@@ -617,16 +622,16 @@ public:
       for(int i=0; i<list_node.size();i++){
 
         // Checking only over terminal nodes
-        if(list_node[i].isTerminal()){
+        if(list_node[i].isTerminal()==1){
 
           // Iterating over the train observations
           for(int j=0;j<list_node[i].obs_train.size();j++){
-            train_pred_vec(j) = list_node[i].mu;
+            train_pred_vec(list_node[i].obs_train(j)) = list_node[i].mu;
           }
 
           // Iterating over the test observations
-          for(int k = 0; k<list_node[k].obs_test.size();k++){
-            test_pred_vec(k) = list_node[i].mu;
+          for(int k = 0; k<list_node[i].obs_test.size();k++){
+            test_pred_vec(list_node[i].obs_test(k)) = list_node[i].mu;
           }
 
         }

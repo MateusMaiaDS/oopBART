@@ -68,6 +68,7 @@ List bart(const Rcpp::NumericMatrix x_train,
   double acceptance_ratio = 0;
   int post_counter = 0;
 
+
   // Getting the number of observations
   int n_train = x_train.rows();
   int n_test = x_test.rows();
@@ -92,6 +93,7 @@ List bart(const Rcpp::NumericMatrix x_train,
   // Creating a matrix of zeros of y_hat
   y_train_hat_post.fill(0);
   y_test_hat_post.fill(0);
+
 
   // Creating the partial residuals and partial predictions
   Rcpp::NumericVector partial_pred(n_train),partial_residuals(n_train);
@@ -130,6 +132,7 @@ List bart(const Rcpp::NumericMatrix x_train,
           verb = 0.1;
         }
 
+
         // Proposing a new tree given the verb
         if(verb < 0.3){
           new_tree.grow(x_train,x_test,n_min_size,xcut);
@@ -139,14 +142,18 @@ List bart(const Rcpp::NumericMatrix x_train,
           new_tree.change(x_train,x_test,n_min_size,xcut);
         }
 
+
     if( (verb<=0.6) && (current_trees[t].list_node.size()==new_tree.list_node.size())) {
       log_transition_prob_obj = transition_loglike(current_trees[t],new_tree,verb);
     } else {
       log_transition_prob_obj = 0;
     }
 
+
+
     // Getting the acceptance log value
-    acceptance = new_tree.tree_loglike(partial_residuals,tau,tau_mu) + new_tree.prior_loglilke(alpha,beta) - current_trees[t].tree_loglike(partial_residuals,tau,tau_mu) - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
+    acceptance = new_tree.tree_loglike(partial_residuals,tau,tau_mu)  + new_tree.prior_loglilke(alpha,beta) - current_trees[t].tree_loglike(partial_residuals,tau,tau_mu) - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
+
 
     // Testing if will acceptance or not
     if( (R::runif(0,1)) < exp(acceptance)){
@@ -159,7 +166,11 @@ List bart(const Rcpp::NumericMatrix x_train,
     current_trees[t].update_mu_tree(partial_residuals,tau,tau_mu);
 
     // Updating the predictions
+    // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
     current_trees[t].getPrediction(prediction_train,prediction_test);
+    // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
+
+    // cout << " ====== " << endl;
 
     // Replcaing the value for partial pred
     partial_pred = y + prediction_train - partial_residuals;
@@ -170,7 +181,7 @@ List bart(const Rcpp::NumericMatrix x_train,
     }
 
     // Updating tau
-    tau = update_tau_old(y,partial_pred,a_tau,d_tau);
+    // tau = update_tau_old(y,partial_pred,a_tau,d_tau);
 
     // Updating the posterior matrix
     if(i >= n_burn){
@@ -181,8 +192,8 @@ List bart(const Rcpp::NumericMatrix x_train,
       tau_post.push_back(tau);
       post_counter++;
     }
-  }
 
+  }
 
   cout << "Acceptance Ratio = " << acceptance_ratio/n_tree << endl;
 
