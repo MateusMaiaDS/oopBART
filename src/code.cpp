@@ -164,7 +164,8 @@ List bart(const Rcpp::NumericMatrix x_train,
             // cout << "ACCEPTED" << endl;
             current_trees[t] = new_tree;
           }
-    }
+    } // Skipping identitical trees
+
     // Updating the \mu values all tree nodes;
     current_trees[t].update_mu_tree(partial_residuals,tau,tau_mu);
 
@@ -228,129 +229,129 @@ double test_mu_update(Rcpp::NumericMatrix x,
 }
 
 
-//[[Rcpp::export]]
-Rcpp::NumericVector test_grow(Rcpp::NumericMatrix x,
-                      Rcpp::NumericMatrix x_test,
-                      Rcpp:: NumericVector y,
-                      Rcpp:: NumericMatrix xcut,
-                      double tau,
-                      double tau_mu){
-  Tree tree_one(y.size(),y.size());
-
-  // Updating mu
-  for(int i=0;i<5;i++){
-    tree_one.grow(x,x_test,1,xcut);
-  }
-
-  vector<node> terminal_nodes = tree_one.getTerminals();
-  Rcpp::NumericVector t_node_index(x.nrow());
-
-  for(int k = 0; k<tree_one.list_node.size();k++){
-    tree_one.list_node[k].DisplayNode();
-  }
-  for(int i = 0;i<terminal_nodes.size();i++){
-    for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
-      t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
-    }
-  }
-
-  return t_node_index;
-}
-
-
-//[[Rcpp::export]]
-Rcpp::NumericVector test_prune(Rcpp::NumericMatrix x,
-                              Rcpp::NumericMatrix x_test,
-                              Rcpp:: NumericVector y,
-                              Rcpp:: NumericMatrix xcut,
-                              double tau,
-                              double tau_mu){
-  Tree tree_one(y.size(),y.size());
-
-  // Updating mu
-  for(int i=0;i<10;i++){
-    tree_one.grow(x,x_test,1,xcut);
-  }
-
-  Rcpp::NumericVector t_node_index(x.nrow());
+// //[[Rcpp::export]]
+// Rcpp::NumericVector test_grow(Rcpp::NumericMatrix x,
+//                       Rcpp::NumericMatrix x_test,
+//                       Rcpp:: NumericVector y,
+//                       Rcpp:: NumericMatrix xcut,
+//                       double tau,
+//                       double tau_mu){
+//   Tree tree_one(y.size(),y.size());
+//
+//   // Updating mu
+//   for(int i=0;i<5;i++){
+//     tree_one.grow(x,x_test,1,xcut);
+//   }
+//
+//   vector<node> terminal_nodes = tree_one.getTerminals();
+//   Rcpp::NumericVector t_node_index(x.nrow());
+//
+//   for(int k = 0; k<tree_one.list_node.size();k++){
+//     tree_one.list_node[k].DisplayNode();
+//   }
+//   for(int i = 0;i<terminal_nodes.size();i++){
+//     for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
+//       t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
+//     }
+//   }
+//
+//   return t_node_index;
+// }
 
 
-  cout << " =============" << endl;
-  cout << " Tree Size " << tree_one.list_node.size() << endl;
-  cout << " =============" << endl;
-
-
-  cout << " =============" << endl;
-  cout << " AFTER PRUNE " << endl;
-  cout << " =============" << endl;
-
-  for(int i = 0; i<4;i++){
-    tree_one.prune();
-  }
-
-    cout << " =============" << endl;
-    cout << " Tree Size " << tree_one.list_node.size() << endl;
-    cout << " =============" << endl;
-
-  vector<node> terminal_nodes = tree_one.getTerminals();
-
-  // Saving the index of terminal nodes
-  for(int i = 0;i<terminal_nodes.size();i++){
-    for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
-      t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
-    }
-  }
-
-  return t_node_index;
-}
-
-//[[Rcpp::export]]
-Rcpp::NumericVector test_change(Rcpp::NumericMatrix x,
-                               Rcpp::NumericMatrix x_test,
-                               Rcpp:: NumericVector y,
-                               Rcpp:: NumericMatrix xcut,
-                               double tau,
-                               double tau_mu){
-  Tree tree_one(y.size(),y.size());
-
-  // Updating mu
-  for(int i=0;i<10;i++){
-    tree_one.grow(x,x_test,1,xcut);
-  }
-
-  Rcpp::NumericVector t_node_index(x.nrow());
-
-  tree_one.DisplayNodes();
-
-
-  cout << " =============" << endl;
-  cout << " Tree Size " << tree_one.list_node.size() << endl;
-  cout << " =============" << endl;
-
-
-  cout << " =============" << endl;
-  cout << " AFTER change " << endl;
-  cout << " =============" << endl;
-
-  tree_one.change(x,x_test,1,xcut);
-
-  tree_one.DisplayNodes();
-
-  cout << " =============" << endl;
-  cout << " Tree Size " << tree_one.list_node.size() << endl;
-  cout << " =============" << endl;
-
-  vector<node> terminal_nodes = tree_one.getTerminals();
-
-  // Saving the index of terminal nodes
-  for(int i = 0;i<terminal_nodes.size();i++){
-    for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
-      t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
-    }
-  }
-
-  return t_node_index;
-}
+// //[[Rcpp::export]]
+// Rcpp::NumericVector test_prune(Rcpp::NumericMatrix x,
+//                               Rcpp::NumericMatrix x_test,
+//                               Rcpp:: NumericVector y,
+//                               Rcpp:: NumericMatrix xcut,
+//                               double tau,
+//                               double tau_mu){
+//   Tree tree_one(y.size(),y.size());
+//
+//   // Updating mu
+//   for(int i=0;i<10;i++){
+//     tree_one.grow(x,x_test,1,xcut);
+//   }
+//
+//   Rcpp::NumericVector t_node_index(x.nrow());
+//
+//
+//   cout << " =============" << endl;
+//   cout << " Tree Size " << tree_one.list_node.size() << endl;
+//   cout << " =============" << endl;
+//
+//
+//   cout << " =============" << endl;
+//   cout << " AFTER PRUNE " << endl;
+//   cout << " =============" << endl;
+//
+//   for(int i = 0; i<4;i++){
+//     tree_one.prune();
+//   }
+//
+//     cout << " =============" << endl;
+//     cout << " Tree Size " << tree_one.list_node.size() << endl;
+//     cout << " =============" << endl;
+//
+//   vector<node> terminal_nodes = tree_one.getTerminals();
+//
+//   // Saving the index of terminal nodes
+//   for(int i = 0;i<terminal_nodes.size();i++){
+//     for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
+//       t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
+//     }
+//   }
+//
+//   return t_node_index;
+// }
+//
+// //[[Rcpp::export]]
+// Rcpp::NumericVector test_change(Rcpp::NumericMatrix x,
+//                                Rcpp::NumericMatrix x_test,
+//                                Rcpp:: NumericVector y,
+//                                Rcpp:: NumericMatrix xcut,
+//                                double tau,
+//                                double tau_mu){
+//   Tree tree_one(y.size(),y.size());
+//
+//   // Updating mu
+//   for(int i=0;i<10;i++){
+//     tree_one.grow(x,x_test,1,xcut);
+//   }
+//
+//   Rcpp::NumericVector t_node_index(x.nrow());
+//
+//   tree_one.DisplayNodes();
+//
+//
+//   cout << " =============" << endl;
+//   cout << " Tree Size " << tree_one.list_node.size() << endl;
+//   cout << " =============" << endl;
+//
+//
+//   cout << " =============" << endl;
+//   cout << " AFTER change " << endl;
+//   cout << " =============" << endl;
+//
+//   tree_one.change(x,x_test,1,xcut);
+//
+//   tree_one.DisplayNodes();
+//
+//   cout << " =============" << endl;
+//   cout << " Tree Size " << tree_one.list_node.size() << endl;
+//   cout << " =============" << endl;
+//
+//   vector<node> terminal_nodes = tree_one.getTerminals();
+//
+//   // Saving the index of terminal nodes
+//   for(int i = 0;i<terminal_nodes.size();i++){
+//     for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
+//       t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
+//     }
+//   }
+//
+//   return t_node_index;
+// }
 
 
 
