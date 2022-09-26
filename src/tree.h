@@ -251,7 +251,8 @@ public:
   void grow(Rcpp::NumericMatrix x_train,
             Rcpp::NumericMatrix x_test,
             int node_min_size,
-            Rcpp::NumericMatrix xcut){
+            Rcpp::NumericMatrix xcut,
+            int &id_t){
 
     // Defining the number of covariates
     int p = x_train.ncol();
@@ -338,6 +339,7 @@ public:
               cov_trial_counter++;
               // CHOOSE ANOTHER SPLITING RULE
                 if(cov_trial_counter == p){
+                      id_t = 1;
                       return;
                 }
             } else {
@@ -465,7 +467,8 @@ public:
   void change(Rcpp::NumericMatrix x_train,
             Rcpp::NumericMatrix x_test,
             int node_min_size,
-            Rcpp::NumericMatrix xcut){
+            Rcpp::NumericMatrix xcut,
+            int &id_t){
 
     // Selecting possible parents of terminal nodes to prune
     vector<node> nog_list;
@@ -535,6 +538,7 @@ public:
         cov_trial_counter++;
         // CHOOSE ANOTHER SPLITING RULE
         if(cov_trial_counter == p){
+          id_t = 1;
           return;
         }
       } else {

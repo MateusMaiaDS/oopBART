@@ -67,7 +67,7 @@ List bart(const Rcpp::NumericMatrix x_train,
   double log_transition_prob_obj;
   double acceptance_ratio = 0;
   int post_counter = 0;
-
+  int id_tree = 0; // 0 if the new tree is different from the current tree; 1 otherwise.
 
   // Getting the number of observations
   int n_train = x_train.rows();
@@ -115,6 +115,9 @@ List bart(const Rcpp::NumericMatrix x_train,
     /// Iterating over the trees
     for(int t=0;t<n_tree;t++){
 
+        // Initilaizing the id_t = 0
+        id_tree = 0;
+
         // Updating the partial_residuals
         partial_residuals = y - (partial_pred-prediction_train);
 
@@ -135,11 +138,11 @@ List bart(const Rcpp::NumericMatrix x_train,
 
         // Proposing a new tree given the verb
         if(verb < 0.3){
-          new_tree.grow(x_train,x_test,n_min_size,xcut);
+          new_tree.grow(x_train,x_test,n_min_size,xcut,id_tree);
         } else if( verb>=0.3 && verb<=0.6){
           new_tree.prune();
         } else {
-          new_tree.change(x_train,x_test,n_min_size,xcut);
+          new_tree.change(x_train,x_test,n_min_size,xcut,id_tree);
         }
 
 
@@ -149,19 +152,19 @@ List bart(const Rcpp::NumericMatrix x_train,
       log_transition_prob_obj = 0;
     }
 
+    // Doing this modification only if the trees are different;
+    if(id_tree==0){
+          // Getting the acceptance log value
+          acceptance = new_tree.tree_loglike(partial_residuals,tau,tau_mu)  + new_tree.prior_loglilke(alpha,beta) - current_trees[t].tree_loglike(partial_residuals,tau,tau_mu) - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
 
 
-    // Getting the acceptance log value
-    acceptance = new_tree.tree_loglike(partial_residuals,tau,tau_mu)  + new_tree.prior_loglilke(alpha,beta) - current_trees[t].tree_loglike(partial_residuals,tau,tau_mu) - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
-
-
-    // Testing if will acceptance or not
-    if( (R::runif(0,1)) < exp(acceptance)){
-      acceptance_ratio++;
-      // cout << "ACCEPTED" << endl;
-      current_trees[t] = new_tree;
+          // Testing if will acceptance or not
+          if( (R::runif(0,1)) < exp(acceptance)){
+            acceptance_ratio++;
+            // cout << "ACCEPTED" << endl;
+            current_trees[t] = new_tree;
+          }
     }
-
     // Updating the \mu values all tree nodes;
     current_trees[t].update_mu_tree(partial_residuals,tau,tau_mu);
 
