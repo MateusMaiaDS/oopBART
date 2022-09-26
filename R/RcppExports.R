@@ -5,23 +5,3 @@ bart <- function(x_train, y, x_test, xcut, n_tree, n_mcmc, n_burn, n_min_size, t
     .Call('_oopBART_bart', PACKAGE = 'oopBART', x_train, y, x_test, xcut, n_tree, n_mcmc, n_burn, n_min_size, tau, mu, tau_mu, naive_sigma, alpha, beta, a_tau, d_tau)
 }
 
-test_likelihood <- function(x, y, tau, tau_mu) {
-    .Call('_oopBART_test_likelihood', PACKAGE = 'oopBART', x, y, tau, tau_mu)
-}
-
-test_mu_update <- function(x, y, tau, tau_mu) {
-    .Call('_oopBART_test_mu_update', PACKAGE = 'oopBART', x, y, tau, tau_mu)
-}
-
-test_grow <- function(x, x_test, y, xcut, tau, tau_mu) {
-    .Call('_oopBART_test_grow', PACKAGE = 'oopBART', x, x_test, y, xcut, tau, tau_mu)
-}
-
-test_prune <- function(x, x_test, y, xcut, tau, tau_mu) {
-    .Call('_oopBART_test_prune', PACKAGE = 'oopBART', x, x_test, y, xcut, tau, tau_mu)
-}
-
-test_change <- function(x, x_test, y, xcut, tau, tau_mu) {
-    .Call('_oopBART_test_change', PACKAGE = 'oopBART', x, x_test, y, xcut, tau, tau_mu)
-}
-

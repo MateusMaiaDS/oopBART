@@ -7,9 +7,10 @@ int sample_int(int n){
   return rand() % n;
 }
 
+
 // Creating one sequence of values
-NumericVector seq_along_cpp(int n){
-  NumericVector vec_seq;
+Rcpp::NumericVector seq_along_cpp(int n){
+  Rcpp::NumericVector vec_seq;
   for(int i =0; i<n;i++){
     vec_seq.push_back(i);
   }
@@ -32,11 +33,10 @@ public:
   double var_split; // Variable which the node was split
 
   double mu; // Mu parameter from the node
-  double loglike; // Loglikelihood of the residuals in that terminal node
 public:
 
   // Getting the constructor
-  node(int index_n, NumericVector obs_train_numb, NumericVector obs_test_numb,
+  node(int index_n, Rcpp::NumericVector obs_train_numb, Rcpp::NumericVector obs_test_numb,
        int left_i, int right_i, int depth_i, int var_i, double var_split_i,
        double mu_i){
 
@@ -79,7 +79,7 @@ public:
     return ((left == -1) && (right == -1) );
   }
 
-  double loglikelihood(Rcpp::NumericVector residuals_values,
+  double loglikelihood(const Rcpp::NumericVector& residuals_values,
                        double tau,
                        double tau_mu){
 
@@ -120,9 +120,11 @@ class Tree{
 public:
   // Defining the main element of the tree structure
   vector<node> list_node;
+  double t_log_likelihood;
+  double t_prior_log_likelihood;
 
   // Getting the vector of nodes
-  Tree(int n_obs_train,int n_obs_test){
+  Tree(int n_obs_train,int n_obs_test,double alpha){
     // Creating a root node
     list_node.push_back(node(0,
                              seq_along_cpp(n_obs_train),
@@ -132,12 +134,13 @@ public:
                              0, //depth
                              -1, // var
                              -1.1, // var_split
-                             0 )); // loglike
+                             0 )); // Mu
+    // Calculating
+    t_log_likelihood = 0.0;
+    t_prior_log_likelihood = alpha;
+
   }
 
-  // void DisplayNodesNumber(){
-  //   cout << "The tree has " << list_node.size() << " nodes" << endl;
-  // }
 
   void DisplayNodes(){
     for(int i = 0; i<list_node.size(); i++){
@@ -220,23 +223,50 @@ public:
     return nog_counter;
   }
 
-  // Getting the tree loglikelihood
-  double tree_loglike(Rcpp::NumericVector res_val, double tau, double tau_mu){
 
-    double log_likesum = 0;
+  // === OLD AND SLOW VERSION OF GETTING LOGLIKELIHOOD
+  // // Getting the tree loglikelihood
+  // double tree_loglike(const Rcpp::NumericVector& res_val,
+  //                     double tau, double tau_mu,
+  //                     double& verb, double& id_node){
+  //
+  //   double log_likesum = 0;
+  //
+  //   // Getting terminal nodes
+  //   vector<node> t_nodes =  getTerminals();
+  //   // Getting values
+  //   for(int i=0;i<t_nodes.size();i++){
+  //     log_likesum += t_nodes[i].loglikelihood(res_val,tau,tau_mu);
+  //   }
+  //
+  //   return log_likesum;
+  // }
 
-    // Getting terminal nodes
-    vector<node> t_nodes =  getTerminals();
-    // Getting values
-    for(int i=0;i<t_nodes.size();i++){
-      log_likesum += t_nodes[i].loglikelihood(res_val,tau,tau_mu);
+  // Getting the tree loglikelihood (BASED ON BARTMACHINES (BLEICH,2017))
+  void new_tree_loglike(const Rcpp::NumericVector& res_val,
+                      double tau, double tau_mu,
+                      Tree& current_tree,
+                      double& verb, int& id_node){
+
+    if(verb < 0.25){ // Grow prob.
+     t_log_likelihood = current_tree.t_log_likelihood - list_node[id_node].loglikelihood(res_val,tau,tau_mu) +
+        list_node[id_node+1].loglikelihood(res_val,tau,tau_mu) +
+        list_node[id_node+2].loglikelihood(res_val,tau,tau_mu);
+    } else if( verb >=0.25 & verb < 0.5 ) {
+      t_log_likelihood = current_tree.t_log_likelihood -
+        (current_tree.list_node[id_node+1].loglikelihood(res_val,tau,tau_mu)+current_tree.list_node[id_node+2].loglikelihood(res_val,tau,tau_mu)) +
+        current_tree.list_node[id_node].loglikelihood(res_val,tau,tau_mu);
+    } else {
+      t_log_likelihood = current_tree.t_log_likelihood -
+        (current_tree.list_node[id_node+1].loglikelihood(res_val,tau,tau_mu)+current_tree.list_node[id_node+2].loglikelihood(res_val,tau,tau_mu)) +
+        (list_node[id_node+1].loglikelihood(res_val,tau,tau_mu)+list_node[id_node+2].loglikelihood(res_val,tau,tau_mu));
     }
 
-    return log_likesum;
+    return;
   }
 
   // Update tree all the mu from all the trees
-  void update_mu_tree(Rcpp::NumericVector res_val, double tau, double tau_mu){
+  void update_mu_tree(Rcpp::NumericVector& res_val, double tau, double tau_mu){
 
     // Iterating over all nodes
     for(int i = 0; i<list_node.size();i++){
@@ -248,11 +278,12 @@ public:
   }
 
   // Growing a tree
-  void grow(Rcpp::NumericMatrix x_train,
-            Rcpp::NumericMatrix x_test,
+  void grow(const Rcpp::NumericMatrix& x_train,
+            const Rcpp::NumericMatrix& x_test,
             int node_min_size,
-            Rcpp::NumericMatrix xcut,
-            int &id_t){
+            const Rcpp::NumericMatrix& xcut,
+            int &id_t,
+            int &id_node){
 
     // Defining the number of covariates
     int p = x_train.ncol();
@@ -339,6 +370,7 @@ public:
               cov_trial_counter++;
               // CHOOSE ANOTHER SPLITING RULE
                 if(cov_trial_counter == p){
+                      id_node = -1;
                       id_t = 1;
                       return;
                 }
@@ -383,6 +415,8 @@ public:
       }
     }
 
+    // Updating the id_node for posterior calculations
+    id_node = g_original_index;
     // Updating the current node
     list_node[g_original_index].left = max_index+1;
     list_node[g_original_index].right = max_index+2;
@@ -417,7 +451,7 @@ public:
   }
 
   // Creating the verb to prune a tree
-  void prune(){
+  void prune(int& id_node){
 
     // Selecting possible parents of terminal nodes to prune
     vector<node> nog_list;
@@ -437,6 +471,9 @@ public:
     int p_node_index = sample_int(nog_list.size());
     int nog_original_index = nog_original_index_vec(p_node_index);
     node p_node = nog_list[p_node_index];
+
+    // Identifying which node was pruned
+    id_node = nog_original_index;
 
     // Changing the current node that will be pruned saving their left and right indexes
     int left_pruned_index = p_node.left;
@@ -464,11 +501,12 @@ public:
   }
 
   // Growing a tree
-  void change(Rcpp::NumericMatrix x_train,
-            Rcpp::NumericMatrix x_test,
+  void change(const Rcpp::NumericMatrix& x_train,
+            const Rcpp::NumericMatrix& x_test,
             int node_min_size,
-            Rcpp::NumericMatrix xcut,
-            int &id_t){
+            const Rcpp::NumericMatrix& xcut,
+            int& id_t,
+            int& id_node){
 
     // Selecting possible parents of terminal nodes to prune
     vector<node> nog_list;
@@ -538,6 +576,7 @@ public:
         cov_trial_counter++;
         // CHOOSE ANOTHER SPLITING RULE
         if(cov_trial_counter == p){
+          id_node = -1;
           id_t = 1;
           return;
         }
@@ -580,6 +619,10 @@ public:
           new_right_test_index.push_back(c_node->obs_test(i));
         }
       }
+
+
+      // Saving the node that was selected to change
+      id_node = nog_original_index;
 
       // Modifying the left node
       list_node[nog_original_index+1].obs_train = new_left_train_index;

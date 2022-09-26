@@ -36,90 +36,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_likelihood
-double test_likelihood(Rcpp::NumericMatrix x, Rcpp:: NumericVector y, double tau, double tau_mu);
-RcppExport SEXP _oopBART_test_likelihood(SEXP xSEXP, SEXP ySEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_likelihood(x, y, tau, tau_mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_mu_update
-double test_mu_update(Rcpp::NumericMatrix x, Rcpp:: NumericVector y, double tau, double tau_mu);
-RcppExport SEXP _oopBART_test_mu_update(SEXP xSEXP, SEXP ySEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_mu_update(x, y, tau, tau_mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_grow
-Rcpp::NumericVector test_grow(Rcpp::NumericMatrix x, Rcpp::NumericMatrix x_test, Rcpp:: NumericVector y, Rcpp:: NumericMatrix xcut, double tau, double tau_mu);
-RcppExport SEXP _oopBART_test_grow(SEXP xSEXP, SEXP x_testSEXP, SEXP ySEXP, SEXP xcutSEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_test(x_testSEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericMatrix >::type xcut(xcutSEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_grow(x, x_test, y, xcut, tau, tau_mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_prune
-Rcpp::NumericVector test_prune(Rcpp::NumericMatrix x, Rcpp::NumericMatrix x_test, Rcpp:: NumericVector y, Rcpp:: NumericMatrix xcut, double tau, double tau_mu);
-RcppExport SEXP _oopBART_test_prune(SEXP xSEXP, SEXP x_testSEXP, SEXP ySEXP, SEXP xcutSEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_test(x_testSEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericMatrix >::type xcut(xcutSEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_prune(x, x_test, y, xcut, tau, tau_mu));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_change
-Rcpp::NumericVector test_change(Rcpp::NumericMatrix x, Rcpp::NumericMatrix x_test, Rcpp:: NumericVector y, Rcpp:: NumericMatrix xcut, double tau, double tau_mu);
-RcppExport SEXP _oopBART_test_change(SEXP xSEXP, SEXP x_testSEXP, SEXP ySEXP, SEXP xcutSEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_test(x_testSEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< Rcpp:: NumericMatrix >::type xcut(xcutSEXP);
-    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_change(x, x_test, y, xcut, tau, tau_mu));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_oopBART_bart", (DL_FUNC) &_oopBART_bart, 16},
-    {"_oopBART_test_likelihood", (DL_FUNC) &_oopBART_test_likelihood, 4},
-    {"_oopBART_test_mu_update", (DL_FUNC) &_oopBART_test_mu_update, 4},
-    {"_oopBART_test_grow", (DL_FUNC) &_oopBART_test_grow, 6},
-    {"_oopBART_test_prune", (DL_FUNC) &_oopBART_test_prune, 6},
-    {"_oopBART_test_change", (DL_FUNC) &_oopBART_test_change, 6},
     {NULL, NULL, 0}
 };
 

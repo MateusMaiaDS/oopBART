@@ -29,18 +29,18 @@ double update_tau_old(Rcpp::NumericVector y,
   return R::rgamma((0.5*n+a_tau),1/(0.5*sum_sq_res+d_tau));
 }
 
-double transition_loglike(Tree curr_tree,
-                          Tree new_tree,
+double transition_loglike(Tree& curr_tree,
+                          Tree& new_tree,
                           double verb){
 
   // Getting the probability
   double log_prob_loglike = 0;
 
   // In case of Grow: (Probability to the Grew to the Current)/(From current to Grow)
-  if(verb < 0.3){
-    log_prob_loglike = log(0.3/new_tree.n_nog())-log(0.3/curr_tree.n_terminal());
-  } else if( verb <= 0.3 && verb < 0.6) { // In case of Prune: (Prob from the Pruned to the current)/(Prob to the current to the prune)
-    log_prob_loglike = log(0.3/new_tree.n_terminal()) -log(0.3/curr_tree.n_nog());
+  if(verb < 0.25){
+    log_prob_loglike = log(0.25/new_tree.n_nog())-log(0.25/curr_tree.n_terminal());
+  } else if( verb <= 0.25 && verb < 0.5) { // In case of Prune: (Prob from the Pruned to the current)/(Prob to the current to the prune)
+    log_prob_loglike = log(0.25/new_tree.n_terminal()) -log(0.25/curr_tree.n_nog());
   }; // In case of change log_prob = 0; it's already the actual value
 
   return log_prob_loglike;
@@ -68,10 +68,13 @@ List bart(const Rcpp::NumericMatrix x_train,
   double acceptance_ratio = 0;
   int post_counter = 0;
   int id_tree = 0; // 0 if the new tree is different from the current tree; 1 otherwise.
-
+  int id_node = -1;
   // Getting the number of observations
   int n_train = x_train.rows();
   int n_test = x_test.rows();
+
+  // Getting the tree size
+  vector<int> tree_size;
 
   // Creating the variables
   int n_post = (n_mcmc-n_burn);
@@ -82,12 +85,16 @@ List bart(const Rcpp::NumericMatrix x_train,
   Rcpp::NumericVector tau_post;
 
   // Getting the initial tree
-  Tree init_tree(n_train,n_test);
+  Tree init_tree(n_train,n_test,alpha);
+
+  // Calculating the initial value of loglikelihood
+  init_tree.t_log_likelihood =  init_tree.list_node[0].loglikelihood(y,tau,tau_mu);
 
   // Creating the list of trees
   vector<Tree> current_trees;
   for(int i = 0;i<n_tree;i++){
     current_trees.push_back(init_tree);
+
   }
 
   // Creating a matrix of zeros of y_hat
@@ -115,73 +122,77 @@ List bart(const Rcpp::NumericMatrix x_train,
     /// Iterating over the trees
     for(int t=0;t<n_tree;t++){
 
-        // Initilaizing the id_t = 0
-        id_tree = 0;
+          // Initilaizing the id_t = 0
+          id_tree = 0;
 
-        // Updating the partial_residuals
-        partial_residuals = y - (partial_pred-prediction_train);
+          // Updating the partial_residuals
+          partial_residuals = y - (partial_pred-prediction_train);
 
-        // Creating one copy of the current tree
-        Tree new_tree = current_trees[t];
-        // Setting probabilities to the choice of the verb
-        // Grow: 0-0.3;
-        // Prune: 0.3-0.6
-        // Change: 0.6-1.0
-        // Swap: Not in this current implementation
-        verb = R::runif(0,1);
+          // Creating one copy of the current tree
+          Tree new_tree = current_trees[t];
+          // Setting probabilities to the choice of the verb
+          // Grow: 0-0.3;
+          // Prune: 0.3-0.6
+          // Change: 0.6-1.0
+          // Swap: Not in this current implementation
+          verb = R::runif(0,1);
 
-        // Little hand to force the trees to grow
-        if(current_trees[t].list_node.size()==1){
-          verb = 0.1;
-        }
-
-
-        // Proposing a new tree given the verb
-        if(verb < 0.3){
-          new_tree.grow(x_train,x_test,n_min_size,xcut,id_tree);
-        } else if( verb>=0.3 && verb<=0.6){
-          new_tree.prune();
-        } else {
-          new_tree.change(x_train,x_test,n_min_size,xcut,id_tree);
-        }
-
-
-    if( (verb<=0.6) && (current_trees[t].list_node.size()==new_tree.list_node.size())) {
-      log_transition_prob_obj = transition_loglike(current_trees[t],new_tree,verb);
-    } else {
-      log_transition_prob_obj = 0;
-    }
-
-    // Doing this modification only if the trees are different;
-    if(id_tree==0){
-          // Getting the acceptance log value
-          acceptance = new_tree.tree_loglike(partial_residuals,tau,tau_mu)  + new_tree.prior_loglilke(alpha,beta) - current_trees[t].tree_loglike(partial_residuals,tau,tau_mu) - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
-
-
-          // Testing if will acceptance or not
-          if( (R::runif(0,1)) < exp(acceptance)){
-            acceptance_ratio++;
-            // cout << "ACCEPTED" << endl;
-            current_trees[t] = new_tree;
+          // Little hand to force the trees to grow
+          if(current_trees[t].list_node.size()==1){
+            verb = 0.1;
           }
-    } // Skipping identitical trees
 
-    // Updating the \mu values all tree nodes;
-    current_trees[t].update_mu_tree(partial_residuals,tau,tau_mu);
 
-    // Updating the predictions
-    // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
-    current_trees[t].getPrediction(prediction_train,prediction_test);
-    // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
+          // Proposing a new tree given the verb
+          if(verb < 0.25){
+            new_tree.grow(x_train,x_test,n_min_size,xcut,id_tree,id_node);
+          } else if( verb>=0.25 && verb<=0.25){
+            new_tree.prune(id_node);
+          } else {
+            new_tree.change(x_train,x_test,n_min_size,xcut,id_tree,id_node);
+          }
 
-    // cout << " ====== " << endl;
 
-    // Replcaing the value for partial pred
-    partial_pred = y + prediction_train - partial_residuals;
+      if( (verb<=0.5) && (current_trees[t].list_node.size()==new_tree.list_node.size())) {
+        log_transition_prob_obj = transition_loglike(current_trees[t],new_tree,verb);
+      } else {
+        log_transition_prob_obj = 0;
+      }
 
-    // Summing up the test prediction
-    prediction_test_sum += prediction_test;
+      // Doing this modification only if the trees are different;
+      if(id_tree==0){
 
+            // Udating new tree loglikelihood
+            new_tree.new_tree_loglike(partial_residuals,tau,tau_mu,current_trees[t],verb,id_node);
+            // Getting the acceptance log value
+            acceptance = new_tree.t_log_likelihood  + new_tree.prior_loglilke(alpha,beta) - current_trees[t].t_log_likelihood - current_trees[t].prior_loglilke(alpha,beta) + log_transition_prob_obj;
+
+            // Testing if will acceptance or not
+            if( (R::runif(0,1)) < exp(acceptance)){
+              acceptance_ratio++;
+              // cout << "ACCEPTED" << endl;
+              current_trees[t] = new_tree;
+            }
+      } // Skipping identitical trees
+
+      // Updating the \mu values all tree nodes;
+      current_trees[t].update_mu_tree(partial_residuals,tau,tau_mu);
+
+      // Updating the predictions
+      // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
+      current_trees[t].getPrediction(prediction_train,prediction_test);
+      // cout << "PREDICTIION TRAIN ONE" << prediction_train(0) << endl;
+
+      // cout << " ====== " << endl;
+
+      // Replcaing the value for partial pred
+      partial_pred = y + prediction_train - partial_residuals;
+
+      // Summing up the test prediction
+      prediction_test_sum += prediction_test;
+
+      // Getting the tree size
+      tree_size.push_back(current_trees[t].list_node.size());
     }
 
     // Updating tau
@@ -199,34 +210,15 @@ List bart(const Rcpp::NumericMatrix x_train,
 
   }
 
-  cout << "Acceptance Ratio = " << acceptance_ratio/n_tree << endl;
+  // cout << "Acceptance Ratio = " << acceptance_ratio/n_tree << endl;
 
   return Rcpp::List::create(_["y_train_hat_post"] = y_train_hat_post,
                             _["y_test_hat_post"] = y_test_hat_post,
-                            _["tau_post"] = tau_post);
+                            _["tau_post"] = tau_post,
+                            _["tree_size"] = tree_size);
 
 }
 
-//[[Rcpp::export]]
-double test_likelihood(Rcpp::NumericMatrix x,
-                       Rcpp:: NumericVector y,
-                       double tau,
-                       double tau_mu){
-    Tree tree_one(y.size(),y.size());
-
-    return tree_one.list_node[0].loglikelihood(y,tau,tau_mu);
-}
-
-//[[Rcpp::export]]
-double test_mu_update(Rcpp::NumericMatrix x,
-                       Rcpp:: NumericVector y,
-                       double tau,
-                       double tau_mu){
-  Tree tree_one(y.size(),y.size());
-  // Updating mu
-  tree_one.list_node[0].update_mu(y,tau,tau_mu);
-  return tree_one.list_node[0].mu;
-}
 
 
 // //[[Rcpp::export]]
