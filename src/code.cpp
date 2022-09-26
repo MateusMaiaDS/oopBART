@@ -13,6 +13,55 @@ using namespace std;
 // The line above (depends) it will make all the depe ndcies be included on the file
 using namespace Rcpp;
 
+void prune(Tree& new_tree,int &id_node){
+
+
+  // Selecting possible parents of terminal nodes to prune
+  vector<node> nog_list;
+  Rcpp::NumericVector nog_original_index_vec;
+
+  // Getting the parent of terminal node only
+  for(int i = 0; i<new_tree.list_node.size();i++){
+    if(new_tree.list_node[i].isTerminal()==0){
+      if(new_tree.list_node[i+1].isTerminal()== 1 && new_tree.list_node[i+2].isTerminal()==1){
+        nog_list.push_back(new_tree.list_node[i]);
+        nog_original_index_vec.push_back(i);
+      }
+    }
+  }
+
+  // Sampling a random node to be pruned
+  int p_node_index = sample_int(nog_list.size());
+  int nog_original_index = nog_original_index_vec(p_node_index);
+  node p_node = nog_list[p_node_index];
+
+  // Identifying which node was pruned
+  id_node = nog_original_index;
+
+  // Changing the current node that will be pruned saving their left and right indexes
+  int left_pruned_index = p_node.left;
+  int right_pruned_index = p_node.right;
+
+  new_tree.list_node[nog_original_index].left = -1;
+  new_tree.list_node[nog_original_index].right = -1;
+
+  // Creating the list of nodes from the new tree
+  vector<node> new_nodes;
+
+  for(int i = 0; i<new_tree.list_node.size();i++){
+
+    // Adding the new nodes
+    if(new_tree.list_node[i].index!=left_pruned_index & new_tree.list_node[i].index!=right_pruned_index){
+      new_nodes.push_back(new_tree.list_node[i]);
+    }
+  }
+
+  // Replacing the new list of nodes;
+  new_tree.list_node = new_nodes;
+
+  return;
+
+}
 
 double update_tau_old(Rcpp::NumericVector y,
                       Rcpp::NumericVector y_hat,
@@ -85,7 +134,7 @@ List bart(const Rcpp::NumericMatrix x_train,
   Rcpp::NumericVector tau_post;
 
   // Getting the initial tree
-  Tree init_tree(n_train,n_test,alpha);
+  Tree init_tree(n_train,n_test);
 
   // Calculating the initial value of loglikelihood
   init_tree.t_log_likelihood =  init_tree.list_node[0].loglikelihood(y,tau,tau_mu);
@@ -112,6 +161,10 @@ List bart(const Rcpp::NumericMatrix x_train,
   partial_residuals.fill(0);
   prediction_train.fill(0);
   prediction_test.fill(0);
+  Rcpp::NumericMatrix tree_fits_store(n_train,n_tree);
+
+  tree_fits_store.fill(0);
+
 
   // Starting the iteration over the MCMC samples
   for(int i=0;i<n_mcmc;i++){
@@ -126,7 +179,7 @@ List bart(const Rcpp::NumericMatrix x_train,
           id_tree = 0;
 
           // Updating the partial_residuals
-          partial_residuals = y - (partial_pred-prediction_train);
+          partial_residuals = y - partial_pred + tree_fits_store(_,t);
 
           // Creating one copy of the current tree
           Tree new_tree = current_trees[t];
@@ -147,7 +200,8 @@ List bart(const Rcpp::NumericMatrix x_train,
           if(verb < 0.25){
             new_tree.grow(x_train,x_test,n_min_size,xcut,id_tree,id_node);
           } else if( verb>=0.25 && verb<=0.25){
-            new_tree.prune(id_node);
+            // new_tree.prune(id_node);
+            prune(new_tree,id_node);
           } else {
             new_tree.change(x_train,x_test,n_min_size,xcut,id_tree,id_node);
           }
@@ -186,7 +240,8 @@ List bart(const Rcpp::NumericMatrix x_train,
       // cout << " ====== " << endl;
 
       // Replcaing the value for partial pred
-      partial_pred = y + prediction_train - partial_residuals;
+      partial_pred = partial_pred-tree_fits_store(_,t) + prediction_train;
+      tree_fits_store(_,t) = prediction_train;
 
       // Summing up the test prediction
       prediction_test_sum += prediction_test;
@@ -221,36 +276,55 @@ List bart(const Rcpp::NumericMatrix x_train,
 
 
 
-// //[[Rcpp::export]]
-// Rcpp::NumericVector test_grow(Rcpp::NumericMatrix x,
-//                       Rcpp::NumericMatrix x_test,
-//                       Rcpp:: NumericVector y,
-//                       Rcpp:: NumericMatrix xcut,
-//                       double tau,
-//                       double tau_mu){
-//   Tree tree_one(y.size(),y.size());
-//
-//   // Updating mu
-//   for(int i=0;i<5;i++){
-//     tree_one.grow(x,x_test,1,xcut);
-//   }
-//
-//   vector<node> terminal_nodes = tree_one.getTerminals();
-//   Rcpp::NumericVector t_node_index(x.nrow());
-//
-//   for(int k = 0; k<tree_one.list_node.size();k++){
-//     tree_one.list_node[k].DisplayNode();
-//   }
-//   for(int i = 0;i<terminal_nodes.size();i++){
-//     for(int j = 0; j<terminal_nodes[i].obs_train.size();j++){
-//       t_node_index(terminal_nodes[i].obs_train(j)) = terminal_nodes[i].index;
-//     }
-//   }
-//
-//   return t_node_index;
-// }
+//[[Rcpp::export]]
+void test_grow_prune_method(Rcpp::NumericMatrix x,
+                      Rcpp::NumericMatrix x_test,
+                      Rcpp:: NumericVector y,
+                      Rcpp:: NumericMatrix xcut,
+                      double tau,
+                      double tau_mu){
 
+  Tree tree_one(y.size(),y.size());
 
+  int id_t = 0;
+  int id_node = -1;
+  // Updating mu
+  for(int i=0;i<100;i++){
+    tree_one.grow(x,x_test,1,xcut,id_t,id_node);
+  }
+
+  // Updating mu
+  for(int i=0;i<10;i++){
+    tree_one.prune(id_node);
+  }
+
+  return ;
+}
+
+//[[Rcpp::export]]
+void test_grow_prune_structure(Rcpp::NumericMatrix x,
+                            Rcpp::NumericMatrix x_test,
+                            Rcpp:: NumericVector y,
+                            Rcpp:: NumericMatrix xcut,
+                            double tau,
+                            double tau_mu){
+
+  Tree tree_one(y.size(),y.size());
+
+  int id_t = 0;
+  int id_node = -1;
+  // Updating mu
+  for(int i=0;i<100;i++){
+    tree_one.grow(x,x_test,1,xcut,id_t,id_node);
+  }
+
+  // Updating mu
+  for(int i=0;i<10;i++){
+    prune(tree_one,id_node);
+  }
+
+  return ;
+}
 // //[[Rcpp::export]]
 // Rcpp::NumericVector test_prune(Rcpp::NumericMatrix x,
 //                               Rcpp::NumericMatrix x_test,
@@ -345,6 +419,23 @@ List bart(const Rcpp::NumericMatrix x_train,
 //   return t_node_index;
 // }
 
+
+//[[Rcpp::export]]
+void sum_vec(){
+
+  Rcpp::NumericVector one, two,four;
+  for(int i = 0; i <10; i++ ){
+    one.push_back(i);
+    two.push_back(i);
+  }
+
+  four = one + two;
+
+  for(int i = 0; i <10; i++ ){
+    cout << "Valeu of i "<< four(i) << endl;
+  }
+
+}
 
 
 

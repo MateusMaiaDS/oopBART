@@ -36,9 +36,51 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// test_grow_prune_method
+void test_grow_prune_method(Rcpp::NumericMatrix x, Rcpp::NumericMatrix x_test, Rcpp:: NumericVector y, Rcpp:: NumericMatrix xcut, double tau, double tau_mu);
+RcppExport SEXP _oopBART_test_grow_prune_method(SEXP xSEXP, SEXP x_testSEXP, SEXP ySEXP, SEXP xcutSEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_test(x_testSEXP);
+    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Rcpp:: NumericMatrix >::type xcut(xcutSEXP);
+    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
+    test_grow_prune_method(x, x_test, y, xcut, tau, tau_mu);
+    return R_NilValue;
+END_RCPP
+}
+// test_grow_prune_structure
+void test_grow_prune_structure(Rcpp::NumericMatrix x, Rcpp::NumericMatrix x_test, Rcpp:: NumericVector y, Rcpp:: NumericMatrix xcut, double tau, double tau_mu);
+RcppExport SEXP _oopBART_test_grow_prune_structure(SEXP xSEXP, SEXP x_testSEXP, SEXP ySEXP, SEXP xcutSEXP, SEXP tauSEXP, SEXP tau_muSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x_test(x_testSEXP);
+    Rcpp::traits::input_parameter< Rcpp:: NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< Rcpp:: NumericMatrix >::type xcut(xcutSEXP);
+    Rcpp::traits::input_parameter< double >::type tau(tauSEXP);
+    Rcpp::traits::input_parameter< double >::type tau_mu(tau_muSEXP);
+    test_grow_prune_structure(x, x_test, y, xcut, tau, tau_mu);
+    return R_NilValue;
+END_RCPP
+}
+// sum_vec
+void sum_vec();
+RcppExport SEXP _oopBART_sum_vec() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    sum_vec();
+    return R_NilValue;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_oopBART_bart", (DL_FUNC) &_oopBART_bart, 16},
+    {"_oopBART_test_grow_prune_method", (DL_FUNC) &_oopBART_test_grow_prune_method, 6},
+    {"_oopBART_test_grow_prune_structure", (DL_FUNC) &_oopBART_test_grow_prune_structure, 6},
+    {"_oopBART_sum_vec", (DL_FUNC) &_oopBART_sum_vec, 0},
     {NULL, NULL, 0}
 };
 

@@ -96,7 +96,7 @@ public:
     return -0.5*tau*sum_r_sq -0.5*log(tau_mu+(n_train*tau)) + (0.5*(tau*tau)*(sum_r*sum_r))/( (tau*n_train)+tau_mu );
   }
 
-  void update_mu(Rcpp::NumericVector residuals_values,
+  void update_mu(Rcpp::NumericVector& residuals_values,
                    double tau,
                    double tau_mu){
     // Calculating the sum of residuals
@@ -121,10 +121,9 @@ public:
   // Defining the main element of the tree structure
   vector<node> list_node;
   double t_log_likelihood;
-  double t_prior_log_likelihood;
 
   // Getting the vector of nodes
-  Tree(int n_obs_train,int n_obs_test,double alpha){
+  Tree(int n_obs_train,int n_obs_test){
     // Creating a root node
     list_node.push_back(node(0,
                              seq_along_cpp(n_obs_train),
@@ -137,7 +136,6 @@ public:
                              0 )); // Mu
     // Calculating
     t_log_likelihood = 0.0;
-    t_prior_log_likelihood = alpha;
 
   }
 

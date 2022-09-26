@@ -5,3 +5,15 @@ bart <- function(x_train, y, x_test, xcut, n_tree, n_mcmc, n_burn, n_min_size, t
     .Call('_oopBART_bart', PACKAGE = 'oopBART', x_train, y, x_test, xcut, n_tree, n_mcmc, n_burn, n_min_size, tau, mu, tau_mu, naive_sigma, alpha, beta, a_tau, d_tau)
 }
 
+test_grow_prune_method <- function(x, x_test, y, xcut, tau, tau_mu) {
+    invisible(.Call('_oopBART_test_grow_prune_method', PACKAGE = 'oopBART', x, x_test, y, xcut, tau, tau_mu))
+}
+
+test_grow_prune_structure <- function(x, x_test, y, xcut, tau, tau_mu) {
+    invisible(.Call('_oopBART_test_grow_prune_structure', PACKAGE = 'oopBART', x, x_test, y, xcut, tau, tau_mu))
+}
+
+sum_vec <- function() {
+    invisible(.Call('_oopBART_sum_vec', PACKAGE = 'oopBART'))
+}
+

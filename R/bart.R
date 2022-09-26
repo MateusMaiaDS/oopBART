@@ -51,6 +51,7 @@ r_bart <- function(x_train,
 
     # Calculating \tau_{\mu} based on the scale of y
     tau_mu <- (4 * n_tree * (K_bart^2))
+    # tau_mu <- 0.1
     nsigma <- naive_sigma(x = x_train,y = y_scale)
     # print(nsigma)
 
