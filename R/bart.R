@@ -12,7 +12,7 @@ r_bart <- function(x_train,
                    n_min_size,
                    tau, mu,
                    alpha, beta,
-                   a_tau,
+                   df,sigquant,
                    num_cut,
                    scale_boolean = TRUE,
                    K_bart = 2){
@@ -51,11 +51,23 @@ r_bart <- function(x_train,
 
     # Calculating \tau_{\mu} based on the scale of y
     tau_mu <- (4 * n_tree * (K_bart^2))
-    # tau_mu <- 0.1
-    nsigma <- naive_sigma(x = x_train,y = y_scale)
-    # print(nsigma)
 
-    d_tau <- rate_tau(x = x_train,y = y_scale,prob = 0.9,shape = a_tau)
+    # Getting the naive sigma
+    nsigma <- naive_sigma(x = x_train,y = y_scale)
+
+    # Getting the df
+    df <- 3
+    # Getting the shape
+    a_tau <- df/2
+
+    # Calculating lambda
+    qchi <- qchisq(p = 1-sigquant,df = df,lower.tail = 1,ncp = 0)
+    lambda <- (nsigma*nsigma*qchi)/df
+    d_tau <- (lambda*df)/2
+
+    ## Using my way with the optim
+    # my_d_tau <- rate_tau(x = x,y = y_scale,prob = 0.9,shape = df/2)
+
     #
   } else {
 
@@ -67,8 +79,16 @@ r_bart <- function(x_train,
     tau_mu <- (4 * n_tree * (K_bart^2))/((b_max-a_min)^2)
     nsigma <- naive_sigma(x = x_train,y = y_scale)
 
-    d_tau <- rate_tau(x = x_train,y = y,prob = 0.9,shape = a_tau)
+    # Getting the naive sigma
+    nsigma <- naive_sigma(x = x_train,y = y_scale)
 
+    # Getting the shape
+    a_tau <- df/2
+
+    # Calculating lambda
+    qchi <- qchisq(p = 1-sigquant,df = df,lower.tail = 1,ncp = 0)
+    lambda <- (nsigma*nsigma*qchi)/df
+    d_tau <- (lambda*df)/2
 
   }
 
@@ -103,7 +123,11 @@ r_bart <- function(x_train,
   return(list(bart_obj = bart_obj, numcut = xcut))
 }
 
-
+# qchi <- qchisq(p = 1-prob,df = 3,lower.tail = 1,0)
+# n_sigma <- naive_sigma(x = x,y = normalize_bart(y))
+# # n_sigma <- 0.217007
+# lambda <- ((n_sigma^2)*qchi)/3
+# lambda
 zero_tau_prob_squared <- function(x, naive_tau_value, prob, shape) {
 
   # Find the zero to the function P(tau < tau_ols) = 0.1, for a defined
@@ -121,6 +145,35 @@ zero_tau_prob <- function(x, naive_tau_value, prob, shape) {
                        rate = x) - (1 - prob))
 }
 
+# Getting the function to find zero for \sigma
+zero_sigma_prob <- function(x, naive_sigma, prob, df) {
+
+  return(1/stats::pgamma(naive_sigma,shape = df/2,rate = (df*x)/2)-prob)
+}
+
+# Return rate parameter from the tau prior
+scale_sigma_prior <- function(x, # X value
+                     y, # Y value
+                     prob = 0.9,
+                     df) {
+  # Find the tau_ols
+  sigma_ols <- naive_sigma(x = x,
+                       y = y)
+
+  # Getting the root
+  min_root <-  try(stats::uniroot(f = zero_sigma_prob, interval = c(.Machine$double.eps, 10000),
+                                  naive_sigma = sigma_ols,
+                                  prob = prob, df = df)$root, silent = FALSE)
+
+  if(inherits(min_root, "try-error")) {
+    # Verifying the squared version
+    min_root <- stats::optim(par = stats::runif(1), fn = zero_tau_prob_squared,
+                             method = "L-BFGS-B", lower = 0,
+                             naive_tau_value = tau_ols,
+                             prob = prob, df = df)$par
+  }
+  return(min_root)
+}
 
 # Naive sigma_estimation
 naive_sigma <- function(x,y){
@@ -139,9 +192,11 @@ naive_sigma <- function(x,y){
   lm_mod <- stats::lm(formula = y ~ ., data =  df)
 
   # Getting sigma
-  sigma <- stats::sigma(lm_mod)
+  sigma <- summary(lm_mod)$sigma
   return(sigma)
 }
+
+# Calculating the  Inverse gamma scale is given by
 
 # Naive tau_estimation
 naive_tau <- function(x, y) {
@@ -181,9 +236,9 @@ rate_tau <- function(x, # X value
                        y = y)
 
   # Getting the root
-  min_root <-  try(stats::uniroot(f = zero_tau_prob, interval = c(1e-8, 100),
+  min_root <-  try(stats::uniroot(f = zero_tau_prob, interval = c(.Machine$double.eps, 10000),
                                   naive_tau_value = tau_ols,
-                                  prob = prob, shape = shape)$root, silent = TRUE)
+                                  prob = prob, shape = shape)$root, silent = FALSE)
 
   if(inherits(min_root, "try-error")) {
     # Verifying the squared version
