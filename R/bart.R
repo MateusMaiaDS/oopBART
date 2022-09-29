@@ -15,7 +15,9 @@ r_bart <- function(x_train,
                    df,sigquant,
                    num_cut,
                    scale_boolean = TRUE,
-                   K_bart = 2){
+                   K_bart = 2,
+                   tau_linero_bool = TRUE,
+                   tau_mu_linero_bool = TRUE){
 
 
   # Saving a_min and b_max
@@ -55,13 +57,11 @@ r_bart <- function(x_train,
     # Getting the naive sigma
     nsigma <- naive_sigma(x = x_train,y = y_scale)
 
-    # Getting the df
-    df <- 3
     # Getting the shape
     a_tau <- df/2
 
     # Calculating lambda
-    qchi <- qchisq(p = 1-sigquant,df = df,lower.tail = 1,ncp = 0)
+    qchi <- stats::qchisq(p = 1-sigquant,df = df,lower.tail = 1,ncp = 0)
     lambda <- (nsigma*nsigma*qchi)/df
     d_tau <- (lambda*df)/2
 
@@ -105,7 +105,10 @@ r_bart <- function(x_train,
                    tau_mu = tau_mu,
                    naive_sigma = nsigma, # naive sigma value
                    alpha = alpha, beta = beta,
-                   a_tau = a_tau, d_tau = d_tau)
+                   a_tau = a_tau, d_tau = d_tau,
+                   nsigma = nsigma,
+                   tau_linero = tau_linero_bool,
+                   tau_mu_linero = tau_mu_linero_bool)
 
   # Returning to the normal scale
   if(scale_boolean){
@@ -123,11 +126,7 @@ r_bart <- function(x_train,
   return(list(bart_obj = bart_obj, numcut = xcut))
 }
 
-# qchi <- qchisq(p = 1-prob,df = 3,lower.tail = 1,0)
-# n_sigma <- naive_sigma(x = x,y = normalize_bart(y))
-# # n_sigma <- 0.217007
-# lambda <- ((n_sigma^2)*qchi)/3
-# lambda
+
 zero_tau_prob_squared <- function(x, naive_tau_value, prob, shape) {
 
   # Find the zero to the function P(tau < tau_ols) = 0.1, for a defined
